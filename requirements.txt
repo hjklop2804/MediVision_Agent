@@ -1,0 +1,30 @@
+# ==========================================
+# MediVision Agent - 核心依赖清单
+# ==========================================
+
+# 1. 核心大模型调用与配置管理
+openai>=1.14.0
+python-dotenv>=1.0.0
+
+# 2. RAG (检索增强生成) 与真实医学文献解析
+chromadb>=0.4.24
+sentence-transformers>=2.5.1
+PyMuPDF>=1.23.21
+
+# 3. 真实医学图像处理与 CV 算法支持
+# （对应你简历中的 BraTS2019 .nii.gz 和 ISIC2018 图像处理）
+monai>=1.3.0
+nibabel>=5.2.0
+opencv-python>=4.8.0
+
+# 4. 后端 API 封装与前端交互界面
+fastapi>=0.110.0
+uvicorn>=0.28.0
+streamlit>=1.32.0
+pydantic>=2.0.0
+
+# 5. 深度学习底层框架
+# 注意：强烈建议你在实际安装时，将下面两行注释掉。
+# 请前往 PyTorch 官网 (pytorch.org) 复制与你本地独立显卡 CUDA 版本匹配的安装命令单独安装，以确保 GPU 加速生效。
+# torch
+# torchvision
