@@ -32,7 +32,7 @@ model = models.resnet50(pretrained=False)
 num_ftrs = model.fc.in_features
 model.fc = nn.Linear(num_ftrs, 7)
 
-# 加载你在消融实验中最强的模型权重
+# 加载消融实验中最强的模型权重
 weight_path = os.path.join(ASSETS_DIR, "ResNet50_FocalLoss_Augmented_best.pth")
 if os.path.exists(weight_path):
     # 使用 weights_only=True 提高安全性（PyTorch 新版推荐做法）
