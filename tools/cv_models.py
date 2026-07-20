@@ -5,7 +5,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from torchvision import models, transforms
 from PIL import Image
-
+import numpy as np
+import cv2
+from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam.utils.image import show_cam_on_image
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 # ==========================================
 # 0. 动态路径配置 (避免找不到文件的核心保障)
 # ==========================================
@@ -69,7 +73,6 @@ CLASS_NAMES = {
 # ==========================================
 @app.post("/analyze_skin_lesion")
 async def analyze_skin_lesion(request: ImageRequest):
-    # 如果传来的是相对路径，将其转换为绝对路径
     target_img_path = request.image_path
     if not os.path.isabs(target_img_path):
         target_img_path = os.path.join(BASE_DIR, target_img_path)
@@ -79,31 +82,59 @@ async def analyze_skin_lesion(request: ImageRequest):
 
     try:
         # 1. 读取并处理真实图像
-        image = Image.open(target_img_path).convert('RGB')
-        tensor_image = data_transforms(image).unsqueeze(0).to(DEVICE)
+        image_pil = Image.open(target_img_path).convert('RGB')
+        tensor_image = data_transforms(image_pil).unsqueeze(0).to(DEVICE)
 
         # 2. 执行模型前向推理
         with torch.no_grad():
             outputs = model(tensor_image)
             probs = torch.softmax(outputs, dim=1)[0]
 
-            # 获取预测的类别索引和对应的置信度
             confidence_score, predicted_idx = torch.max(probs, 0)
             pred_class_id = predicted_idx.item()
             pred_class_name = CLASS_NAMES[pred_class_id]
             conf_val = round(confidence_score.item(), 4)
 
-        # 3. 生成给 Agent 大脑的结构化报告
+        # ==========================================
+        # 新增：3. Grad-CAM 热力图生成逻辑
+        # ==========================================
+        # 针对 ResNet-50，提取最后一层卷积层 layer4
+        target_layers = [model.layer4[-1]]
+
+        # 构造 CAM 对象
+        cam = GradCAM(model=model, target_layers=target_layers)
+
+        # 指定生成目标（即模型刚才预测出的那个类别）
+        targets = [ClassifierOutputTarget(pred_class_id)]
+
+        # 生成灰度特征图
+        grayscale_cam = cam(input_tensor=tensor_image, targets=targets)[0, :]
+
+        # 将原图归一化用于可视化叠加
+        rgb_img = np.float32(image_pil.resize((224, 224))) / 255
+
+        # 叠加生成最终的热力图
+        visualization = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
+
+        # 构造保存路径 (保存在原图同一目录下，加上 _cam 后缀)
+        img_name, img_ext = os.path.splitext(target_img_path)
+        cam_save_path = f"{img_name}_cam{img_ext}"
+
+        # 将 RGB 转换为 BGR 并保存 (OpenCV 默认使用 BGR)
+        cv2.imwrite(cam_save_path, cv2.cvtColor(visualization, cv2.COLOR_RGB2BGR))
+
         warning_msg = "未见明显高危特征。"
-        if pred_class_id in [0, 2]:  # MEL 和 BCC 属于恶性/高危
+        if pred_class_id in [0, 2]:
             warning_msg = "🚨 高危病灶报警：该病变具有高度恶性特征，建议立刻结合皮肤镜图谱与临床指南进行复核并安排活检。"
 
+        # 4. 返回增强后的结构化报告
         return {
             "status": "success",
             "task": "Skin Lesion Classification",
             "prediction": pred_class_name,
             "confidence_score": conf_val,
-            "heatmap_generated": False,
+            "heatmap_generated": True,
+            "heatmap_path": cam_save_path,  # 告诉大模型热力图存在哪里
             "clinical_warning": warning_msg
         }
 
