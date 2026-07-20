@@ -71,7 +71,7 @@ python core_agent/llm_engine.py
 
 本项目通过在 Agent 中枢引入严格的 **ReAct 约束** 和 ** 内部思维链 (CoT)**，并结合 **Few-Shot (少样本提示)**，彻底解决了大模型在医疗指标上的漏读问题，成功实现了对高危病灶的精准拦截与急救引导。
 
-👉 **[点击这里查看完整的 Prompt 调优与 Bad Case 分析记录（附真实高危 Case 拦截截图）](https://www.google.com/search?q=docs/Prompt_Tuning_and_BadCase_Analysis.md)**
+👉 **[点击这里查看完整的 Prompt 调优与 Bad Case 分析记录（附真实高危 Case 拦截截图）](docs/Prompt_Tuning_and_BadCase_Analysis.md)**
 
 ## 📅 演进路线图 (To-Do)
 
