@@ -1,0 +1,12 @@
+{
+    "MEL": {
+        "disease_name": "恶性黑色素瘤 (Melanoma)",
+        "risk_level": "极高危",
+        "guideline_text": "《中国黑色素瘤诊疗指南（2023版）》指出：对于疑似黑色素瘤的病灶，首选切除活检，切忌进行切开活检或穿刺活检以免引起肿瘤播散。一旦确诊，需根据Breslow厚度进行前哨淋巴结活检（SLNB）。后期治疗包含靶向治疗（如BRAF抑制剂）与免疫治疗（如PD-1单抗）。"
+    },
+    "BKL": {
+        "disease_name": "良性角化病 (Seborrheic Keratosis)",
+        "risk_level": "低风险",
+        "guideline_text": "良性病变，通常不发生恶变。若无症状且不影响美观，无需治疗。如患者有治疗需求，可考虑液氮冷冻、激光治疗或刮除术。"
+    }
+}
