@@ -1,13 +1,27 @@
 import os
+# 确保网络畅通
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import json
 import requests
 from dotenv import load_dotenv
 from openai import OpenAI
+import chromadb
+from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url=os.getenv("BASE_URL"))
 CV_API_URL = os.getenv("CV_MODEL_ENDPOINT")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ==========================================
+# 🚀 新增：全局初始化向量数据库与 Embedding 模型
+# ==========================================
+print("正在加载向量检索中枢...")
+embedding_model = SentenceTransformer('shibing624/text2vec-base-chinese')
+db_path = os.path.join(BASE_DIR, "knowledge_base", "chroma_db")
+chroma_client = chromadb.PersistentClient(path=db_path)
+collection = chroma_client.get_collection(name="medical_guidelines")
+
 
 # ==========================================
 # 1. 进阶版 System Prompt (强调查阅指南)
@@ -38,6 +52,18 @@ TOOLS_SCHEMA = [
                 "type": "object",
                 "properties": {"image_path": {"type": "string"}},
                 "required": ["image_path"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_brain_mri",
+            "description": "调用 3D 医疗影像分析模型分析脑部核磁共振(MRI)数据。当患者提及脑部、头痛或提供 .nii.gz 格式文件时调用此工具。",
+            "parameters": {
+                "type": "object",
+                "properties": {"mri_path": {"type": "string"}},
+                "required": ["mri_path"]
             }
         }
     },
@@ -75,16 +101,40 @@ def execute_analyze_skin_lesion(args_dict):
 
 
 def execute_search_clinical_guidelines(args_dict):
-    """工具2：本地 RAG 知识检索"""
-    code = args_dict.get("disease_code", "").upper()
-    db_path = os.path.join(BASE_DIR, "knowledge_base", "guidelines.json")
-    try:
-        with open(db_path, "r", encoding="utf-8") as f:
-            db = json.load(f)
-        return db.get(code, {"error": "未找到该疾病的指南信息"})
-    except Exception as e:
-        return {"error": "知识库读取失败"}
+    """工具2：基于 ChromaDB 的向量语义检索"""
+    # 提取大模型想要查询的关键词 (例如: "MEL", "恶性黑色素瘤")
+    query = args_dict.get("disease_code", "")
+    if not query:
+        return {"error": "检索词为空"}
 
+    try:
+        print(f"🔍 正在向量库中检索相关临床文献，关键词: {query}")
+        # 1. 将查询词转化为向量
+        query_embedding = embedding_model.encode([query]).tolist()
+
+        # 2. 在 ChromaDB 中检索余弦相似度最高的 2 个文本块 (Top-K = 2)
+        results = collection.query(
+            query_embeddings=query_embedding,
+            n_results=2
+        )
+
+        # 3. 提取并拼接检索到的文本
+        if results and results['documents'] and len(results['documents'][0]) > 0:
+            retrieved_texts = results['documents'][0]
+            combined_guidelines = "\n".join(retrieved_texts)
+            return {"status": "success", "retrieved_guidelines": combined_guidelines}
+        else:
+            return {"error": "未检索到相关指南信息"}
+
+    except Exception as e:
+        return {"error": f"向量检索失败: {str(e)}"}
+
+def execute_analyze_brain_mri(args_dict):
+    """工具3：3D 脑肿瘤分析 (Mock 占位)"""
+    return {
+        "status": "pending",
+        "message": "🧠 脑肿瘤 3D 分割专科模型目前正在集群进行最后阶段的训练迭代，预计近期上线。当前系统暂时建议患者以线下专业医生的影像学诊断为准。"
+    }
 
 # 工具路由字典 (核心机制)
 AVAILABLE_TOOLS = {
@@ -92,6 +142,11 @@ AVAILABLE_TOOLS = {
     "search_clinical_guidelines": execute_search_clinical_guidelines
 }
 
+AVAILABLE_TOOLS = {
+    "analyze_skin_lesion": execute_analyze_skin_lesion,
+    "search_clinical_guidelines": execute_search_clinical_guidelines,
+    "analyze_brain_mri": execute_analyze_brain_mri  # 新增占位工具
+}
 
 # ==========================================
 # 4. 完整的 ReAct 智能循环
