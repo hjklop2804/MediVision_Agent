@@ -5,6 +5,13 @@
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)
 ![DeepSeek API](https://img.shields.io/badge/LLM-DeepSeek-4d6bfe.svg)
+![Gradio](https://img.shields.io/badge/UI-Gradio-ff69b4.svg)
+---
+<!-- 🚀 这里的图片链接替换为你自己的路径 -->
+<div align="center">
+  <img src="docs\demo_ui.png" alt="MediVision Web UI Demo" width="800">
+  <p><em>🔺 Agent 全自动调度：从图像视觉提取、热力图生成到权威指南 RAG 检索的完整闭环展示</em></p>
+</div>
 
 ## 📖 项目简介
 MediVision 是一款结合了**大语言模型 (LLM)** 与**底层深度学习视觉模型 (CV)** 的多模态医疗辅助诊断 Agent。本项目旨在解决传统 AI 医疗模型“黑盒化”和“缺乏交互”的痛点，通过 Agent 的 ReAct 范式，赋予大模型调用专业医疗算法的能力，从而生成具备高置信度和临床解释性的结构化诊断报告。
