@@ -9,7 +9,7 @@
 ---
 <!-- 🚀 这里的图片链接替换为你自己的路径 -->
 <div align="center">
-  <img src="docs\demo_ui.png" alt="MediVision Web UI Demo" width="800">
+  <img src="zhanshi\demo_ui.png" alt="MediVision Web UI Demo" width="800">
   <p><em>🔺 Agent 全自动调度：从图像视觉提取、热力图生成到权威指南 RAG 检索的完整闭环展示</em></p>
 </div>
 
