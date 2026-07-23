@@ -38,11 +38,13 @@ conda create -n med_agent python=3.10 -y
 conda activate med_agent
 pip install -r requirements.txt
 
+```
+
 ### 2. 配置密钥
 
-在根目录创建 `.env` 文件并填入配置：
-
-```env
+在根目录创建 .env 文件并填入配置：
+```bash
+env
 DEEPSEEK_API_KEY="sk-your-api-key"
 BASE_URL="[https://api.deepseek.com/v1](https://api.deepseek.com/v1)"
 CV_MODEL_ENDPOINT="[http://127.0.0.1:8000](http://127.0.0.1:8000)"
@@ -73,7 +75,7 @@ python web_ui.py
 
 在多模态数据（文本+视觉 JSON）融合的早期测试中，系统偶尔会出现“无视低置信度”或“遗漏临床警告”的幻觉（Hallucination）。
 
-本项目通过在 Agent 中枢引入严格的 **ReAct 约束** 和 ** 内部思维链 (CoT)**，并结合 **Few-Shot (少样本提示)**，彻底解决了大模型在医疗指标上的漏读问题，成功实现了对高危病灶的精准拦截与急救引导。
+本项目通过在 Agent 中枢引入严格的 **ReAct 约束** 和 **内部思维链 (CoT)**，并结合 **Few-Shot (少样本提示)**，彻底解决了大模型在医疗指标上的漏读问题，成功实现了对高危病灶的精准拦截与急救引导。
 
 👉 **[点击这里查看完整的 Prompt 调优与 Bad Case 分析记录（附真实高危 Case 拦截截图）](docs/Prompt_Tuning_and_BadCase_Analysis.md)**
 
