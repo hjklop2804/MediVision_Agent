@@ -1,6 +1,11 @@
 import os
-# 确保网络畅通
+import re
+
+# ==========================================
+# 🛑 删掉所有花里胡哨的 SSL 魔改，只保留这句在之前成功跑通的镜像配置！
+# ==========================================
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 import json
 import requests
 from dotenv import load_dotenv
@@ -200,3 +205,66 @@ if __name__ == "__main__":
     # 找一张恶性黑色素瘤的照片测试
     run_agent("医生你好，我腿上长了个黑色的斑，你能帮我看一下吗？图片路径是 data/ISIC_0025368.jpg")
 
+
+# ==========================================
+# 🚀 Web UI 专属调用接口
+# ==========================================
+def run_agent_for_ui(image_path):
+    """供 Web 端调用的 Agent 函数，返回 (最终报告, 热力图路径)"""
+    user_input = f"医生你好，你能帮我看一下这个皮损图片吗？图片路径是 {image_path}"
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_input}]
+
+    final_report = ""
+    heatmap_path = None
+
+    def strip_thinking_blocks(text: str) -> str:
+        """去除 <thinking>...</thinking> 内心独白，避免破坏 Markdown 渲染，也避免暴露给用户"""
+        if not text:
+            return text
+        return re.sub(r"<thinking>.*?</thinking>", "", text, flags=re.DOTALL).strip()
+    # 扩大思考上限，防止过早截断
+    for step in range(5):
+        print(f"🧠 [Agent 思考中 - 第 {step + 1} 轮] 正在与大模型中枢通讯，请稍候...")
+
+        response = client.chat.completions.create(
+            model="deepseek-chat", messages=messages, tools=TOOLS_SCHEMA, temperature=0.1
+        )
+        response_msg = response.choices[0].message
+
+        # 如果大模型不再调用工具，说明它开始撰写最终报告了！
+        if not response_msg.tool_calls:
+            print("📝 [Agent 思考完毕] 已经拿到大模型回复！")
+            final_report = response_msg.content
+            final_report = strip_thinking_blocks(final_report)
+            # 👇 新增下面这几行，强制把它在后台写好的报告打印出来！
+            print("\n" + "=" * 20 + " 诊断报告预览 " + "=" * 20)
+            print(final_report)
+            print("=" * 54 + "\n")
+            print("🚀 正在将结果推送给网页前端，如果网页依然转圈，请立刻关闭电脑的代理软件！")
+            break
+
+        messages.append(response_msg)
+
+        # 执行工具
+        for tool_call in response_msg.tool_calls:
+            func_name = tool_call.function.name
+            func_args = json.loads(tool_call.function.arguments)
+
+            function_to_call = AVAILABLE_TOOLS.get(func_name)
+            if function_to_call:
+                result = function_to_call(func_args)
+                if func_name == "analyze_skin_lesion" and "heatmap_path" in result:
+                    heatmap_path = result["heatmap_path"]
+            else:
+                result = {"error": "Tool not found"}
+
+            messages.append({
+                "tool_call_id": tool_call.id,
+                "role": "tool",
+                "name": func_name,
+                "content": json.dumps(result, ensure_ascii=False)
+            })
+
+    print(f"🔎 final_report 类型: {type(final_report)}, 内容repr: {final_report!r}")
+    print(f"🔎 heatmap_path 类型: {type(heatmap_path)}, 内容repr: {heatmap_path!r}")
+    return final_report, heatmap_path
